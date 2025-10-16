@@ -153,10 +153,10 @@
         score++;
         scoreEl.textContent = score;
         feedbackEl.className = 'mt-4 text-sm text-green-300';
-        feedbackEl.textContent = '<TODO: Add correct answer message here>';
+        feedbackEl.textContent = `${correct} - I guess it comes to a simple choice really... Get busy living, or get busy dyingI guess it comes to a simple choice really... Get busy living, or get busy dying`;
       } else {
         feedbackEl.className = 'mt-4 text-sm text-rose-300';
-        feedbackEl.textContent = `<TODO: Add incorrect answer message here> ${correct}.`;
+        feedbackEl.textContent = `${correct} - Failure is the condiment that gives success its flavor`;
       }
 
       const isLast = idx >= order.length - 1;
