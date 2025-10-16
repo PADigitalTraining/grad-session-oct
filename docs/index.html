@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quote Guesser</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="description" content="Guess which character said the quote from movies and TV shows."/>
+</head>
+<body class="min-h-screen bg-slate-900 text-slate-100 antialiased">
+  <main class="mx-auto max-w-3xl px-4 py-10">
+    <header class="text-center mb-6">
+      <h1 class="text-3xl font-extrabold tracking-tight">🎬 Quote Guesser</h1>
+      <p class="text-slate-300 mt-2">Press start, read the quote, pick who said it.</p>
+    </header>
+
+    <section id="start-screen" class="flex flex-col items-center justify-center gap-6 rounded-2xl bg-slate-800/60 p-8 shadow-lg">
+      <button id="start-btn" class="rounded-2xl bg-indigo-500 px-6 py-3 text-lg font-semibold shadow hover:bg-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-300 active:scale-[.98]">Start</button>
+      <p class="text-sm text-slate-400">You will get a series of quotes. Score a point for each correct answer.</p>
+    </section>
+
+    <section id="game-screen" class="hidden rounded-2xl bg-slate-800/60 p-6 shadow-lg">
+      <div class="flex items-center justify-between mb-4">
+        <div class="text-sm text-slate-300">Question <span id="q-number">1</span>/<span id="q-total">0</span></div>
+        <div class="text-sm text-slate-300">Score: <span id="score">0</span></div>
+      </div>
+
+      <blockquote id="quote" class="text-xl md:text-2xl font-semibold leading-relaxed bg-slate-900/60 rounded-xl p-5 mb-6 border border-slate-700">
+        “When you're ready, press Start.”
+      </blockquote>
+
+      <div id="options" class="grid gap-3 md:grid-cols-2"></div>
+
+      <div class="mt-6 flex items-center justify-between">
+        <button id="next-btn" class="rounded-xl bg-slate-700 px-4 py-2 font-medium text-slate-100 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-600 focus:outline-none focus:ring-4 focus:ring-slate-500" disabled>Next</button>
+        <button id="restart-btn" class="hidden rounded-xl bg-slate-700 px-4 py-2 font-medium text-slate-100 hover:bg-slate-600 focus:outline-none focus:ring-4 focus:ring-slate-500">Restart</button>
+      </div>
+
+      <p id="feedback" class="mt-4 text-sm"></p>
+      <p>
+    </section>
+
+    <section id="result-screen" class="hidden text-center rounded-2xl bg-slate-800/60 p-8 shadow-lg">
+      <h2 class="text-2xl font-bold">All done! 🎉</h2>
+      <p class="mt-2 text-slate-300">You scored <span id="final-score">0</span> out of <span id="final-total">0</span>.</p>
+      <button id="play-again-btn" class="mt-6 rounded-2xl bg-indigo-500 px-6 py-3 text-lg font-semibold shadow hover:bg-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-300">Play Again</button>
+    </section>
+  </main>
+
+  <script>
+    const QUESTIONS = [
+      { quote: "I am the one who knocks.", options: ["Walter White", "Jesse Pinkman", "Gus Fring", "Saul Goodman"], answer: "Walter White" },
+      { quote: "Winter is coming.", options: ["Jon Snow", "Ned Stark", "Tyrion Lannister", "Catelyn Stark"], answer: "Ned Stark" },
+      { quote: "This is the way.", options: ["Din Djarin", "Boba Fett", "Grogu", "Ahsoka Tano"], answer: "Din Djarin" },
+      { quote: "I'll be back.", options: ["Terminator", "Sarah Connor", "John Connor", "Kyle Reese"], answer: "Terminator" },
+      { quote: "Why so serious?", options: ["The Joker", "Batman", "Harvey Dent", "Bane"], answer: "The Joker" },
+      { quote: "To infinity and beyond!", options: ["Buzz Lightyear", "Woody", "Mr. Potato Head", "Jessie"], answer: "Buzz Lightyear" },
+      { quote: "You shall not pass!", options: ["Gandalf", "Aragorn", "Saruman", "Frodo"], answer: "Gandalf" },
+      { quote: "Here's looking at you, kid.", options: ["Rick Blaine", "Ilsa Lund", "Sam", "Captain Renault"], answer: "Rick Blaine" },
+      { quote: "Say my name.", options: ["Walter White", "Gus Fring", "Mike Ehrmantraut", "Hank Schrader"], answer: "Walter White" },
+      { quote: "D'oh!", options: ["Homer Simpson", "Bart Simpson", "Marge Simpson", "Ned Flanders"], answer: "Homer Simpson" },
+      { quote: "Live long and prosper.", options: ["Spock", "Kirk", "McCoy", "Scotty"], answer: "Spock" },
+      { quote: "I solemnly swear that I am up to no good.", options: ["Fred Weasley", "George Weasley", "Harry Potter", "Sirius Black"], answer: "Harry Potter" },
+    ];
+
+  
+    const byId = (id) => document.getElementById(id);
+    const shuffle = (arr) => arr.map(v => [Math.random(), v]).sort((a,b) => a[0]-b[0]).map(v => v[1]);
+
+    // ======= STATE =======
+    let order = [];
+    let idx = 0;
+    let score = 0;
+    let locked = false;
+
+
+    const startScreen = byId('start-screen');
+    const gameScreen = byId('game-screen');
+    const resultScreen = byId('result-screen');
+    const startBtn = byId('start-btn');
+    const nextBtn = byId('next-btn');
+    const restartBtn = byId('restart-btn');
+    const playAgainBtn = byId('play-again-btn');
+    const qNumber = byId('q-number');
+    const qTotal = byId('q-total');
+    const scoreEl = byId('score');
+    const quoteEl = byId('quote');
+    const optionsEl = byId('options');
+    const feedbackEl = byId('feedback');
+    const finalScore = byId('final-score');
+    const finalTotal = byId('final-total');
+
+    // ======= GAME LOGIC =======
+    function startGame() {
+      order = shuffle([...Array(QUESTIONS.length).keys()]);
+      idx = 0;
+      score = 0;
+      scoreEl.textContent = score;
+      qTotal.textContent = QUESTIONS.length;
+      feedbackEl.textContent = '';
+      startScreen.classList.add('hidden');
+      resultScreen.classList.add('hidden');
+      gameScreen.classList.remove('hidden');
+      restartBtn.classList.add('hidden');
+      nextBtn.disabled = true;
+      showQuestion();
+    }
+
+    function showQuestion() {
+      locked = false;
+      const q = QUESTIONS[order[idx]];
+      qNumber.textContent = idx + 1;
+      quoteEl.textContent = `"${q.quote}"`;
+      optionsEl.innerHTML = '';
+      const opts = shuffle([...q.options]);
+
+      opts.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full text-left rounded-xl border border-slate-700 bg-slate-900/50 px-4 py-3 font-medium hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-600';
+        btn.textContent = opt;
+        btn.setAttribute('data-choice', opt);
+        btn.addEventListener('click', () => handleChoice(btn, q.answer));
+        optionsEl.appendChild(btn);
+      });
+
+      feedbackEl.textContent = '';
+      nextBtn.disabled = true;
+    }
+
+    function handleChoice(btn, correct) {
+      if (locked) return;
+      locked = true;
+      const choice = btn.getAttribute('data-choice');
+      const isCorrect = choice === correct;
+
+ 
+      btn.classList.remove('border-slate-700');
+      btn.classList.add(isCorrect ? 'border-green-500' : 'border-rose-500');
+
+
+      ;[...optionsEl.children].forEach(b => {
+        const c = b.getAttribute('data-choice');
+        b.disabled = true;
+        if (c === correct) {
+          b.classList.add('bg-green-600/30');
+          b.classList.add('border-green-500');
+        } else if (b !== btn) {
+          b.classList.add('opacity-70');
+        }
+      });
+
+      if (isCorrect) {
+        score++;
+        scoreEl.textContent = score;
+        feedbackEl.className = 'mt-4 text-sm text-green-300';
+        feedbackEl.textContent = '<TODO: Add correct answer message here>';
+      } else {
+        feedbackEl.className = 'mt-4 text-sm text-rose-300';
+        feedbackEl.textContent = `<TODO: Add incorrect answer message here> ${correct}.`;
+      }
+
+      const isLast = idx >= order.length - 1;
+      nextBtn.textContent = isLast ? 'Finish' : 'Next';
+      nextBtn.disabled = false;
+    }
+
+    function nextQuestion() {
+      const isLast = idx >= order.length - 1;
+      if (isLast) {
+        endGame();
+      } else {
+        idx++;
+        showQuestion();
+      }
+    }
+
+    function endGame() {
+      finalScore.textContent = score;
+      finalTotal.textContent = QUESTIONS.length;
+      gameScreen.classList.add('hidden');
+      resultScreen.classList.remove('hidden');
+    }
+
+    function restartGame() {
+      startGame();
+    }
+
+    startBtn.addEventListener('click', startGame);
+    nextBtn.addEventListener('click', nextQuestion);
+    restartBtn.addEventListener('click', restartGame);
+    playAgainBtn.addEventListener('click', restartGame);
+
+    document.addEventListener('keydown', (e) => {
+      if (!gameScreen.classList.contains('hidden')) {
+        if (e.key >= '1' && e.key <= '9') {
+          const idx = parseInt(e.key, 10) - 1;
+          const btn = optionsEl.children[idx];
+          if (btn && !btn.disabled) btn.click();
+        } else if (e.key === 'Enter' && !nextBtn.disabled) {
+          nextBtn.click();
+        }
+      }
+    });
+  </script>
+<div>
+</body>
+</html>
+</div>
