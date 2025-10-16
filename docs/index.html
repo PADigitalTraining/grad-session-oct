@@ -153,10 +153,10 @@
         score++;
         scoreEl.textContent = score;
         feedbackEl.className = 'mt-4 text-sm text-green-300';
-        feedbackEl.textContent = '<TODO: Add correct answer message here>';
+        feedbackEl.textContent = '✅ All our dreams can come true, if we have the courage to pursue them - Walt Disney';
       } else {
         feedbackEl.className = 'mt-4 text-sm text-rose-300';
-        feedbackEl.textContent = `<TODO: Add incorrect answer message here> ${correct}.`;
+        feedbackEl.textContent = `❌ Try again next time! Failure is the condiment that gives success its flavor - Truman Capote. Correct Answer: ${correct}`;
       }
 
       const isLast = idx >= order.length - 1;
